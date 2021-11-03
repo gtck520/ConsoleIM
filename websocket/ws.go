@@ -10,7 +10,7 @@ import (
 	"github.com/gtck520/ConsoleIM/common/codes"
 	"github.com/gtck520/ConsoleIM/common/logger"
 	"github.com/gtck520/ConsoleIM/common/util/convert"
-	service "github.com/gtck520/ConsoleIM/service/v1/api"
+	"github.com/gtck520/ConsoleIM/service"
 
 	"log"
 	"net/http"
