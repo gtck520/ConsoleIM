@@ -4,18 +4,19 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-ini/ini"
-	"os/exec"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/go-ini/ini"
 )
 
 var (
-	Cfg     *ini.File
-	RunMode string
-	WorkPath string
-	RunPath string
+	Cfg          *ini.File
+	RunMode      string
+	WorkPath     string
+	RunPath      string
 	HTTPPort     int
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
@@ -25,6 +26,7 @@ var (
 )
 
 func init() {
+
 	var err error
 	if WorkPath, err = filepath.Abs(filepath.Dir(os.Args[0])); err != nil {
 		panic(err)
@@ -34,7 +36,7 @@ func init() {
 		panic(err)
 	}
 	var filename = "env.ini"
-	filename = filepath.Join(RunPath, "config",filename)
+	filename = filepath.Join(RunPath, "config", filename)
 	if os.Getenv("CKGO_WORK_DIR") != "" {
 		filename = os.Getenv("CKGO_WORK_DIR") + "/config/env.ini"
 	}
