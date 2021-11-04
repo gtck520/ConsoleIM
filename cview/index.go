@@ -24,10 +24,10 @@ type CView struct {
 	IsLogin       bool
 	App           *tview.Application
 	Pages         *tview.Pages
-	CurrentSlide  Slide
-	PreviousSlide Slide
-	NextSlide     Slide
+	CurrentSlide  string
+	PreviousSlide string
 	Slides        []Slide
+	TabInfo       *tview.TextView
 }
 
 // Slide is a function which returns the slide's main primitive and its title.
@@ -40,10 +40,10 @@ func NewCView() *CView {
 		IsLogin:       false,
 		App:           tview.NewApplication(),
 		Pages:         tview.NewPages(),
-		CurrentSlide:  nil,
-		PreviousSlide: nil,
-		NextSlide:     nil,
+		CurrentSlide:  "0",
+		PreviousSlide: "0",
 		Slides:        make([]Slide, 10),
+		TabInfo:       tview.NewTextView(), //底部切换栏
 	}
 
 	return f
@@ -52,7 +52,7 @@ func NewCView() *CView {
 // Starting point for the presentation.
 func (c *CView) Index() {
 	// The presentation slides.
-	c.Slides[0] = Cover
+	c.Slides[0] = c.Cover //此处key值 跳转页面时需要用到 需要对应
 	//如果登录成功则不再显示登录页面
 	if !c.IsLogin {
 		c.Slides[1] = c.Login
@@ -63,9 +63,8 @@ func (c *CView) Index() {
 	//初始化页面
 	c.Pages = tview.NewPages()
 
-	// The bottom row has some info on where we are.
-	info := tview.NewTextView().
-		SetDynamicColors(true).
+	// The bottom row has some c.TabInfo on where we are.
+	c.TabInfo.SetDynamicColors(true).
 		SetRegions(true).
 		SetWrap(false).
 		SetHighlightedFunc(func(added, removed, remaining []string) {
@@ -74,15 +73,15 @@ func (c *CView) Index() {
 
 	// Create the pages for all slides.
 	previousSlide := func() {
-		slide, _ := strconv.Atoi(info.GetHighlights()[0])
+		slide, _ := strconv.Atoi(c.TabInfo.GetHighlights()[0])
 		slide = (slide - 1 + len(c.Slides)) % len(c.Slides)
-		info.Highlight(strconv.Itoa(slide)).
+		c.TabInfo.Highlight(strconv.Itoa(slide)).
 			ScrollToHighlight()
 	}
 	nextSlide := func() {
-		slide, _ := strconv.Atoi(info.GetHighlights()[0])
+		slide, _ := strconv.Atoi(c.TabInfo.GetHighlights()[0])
 		slide = (slide + 1) % len(c.Slides)
-		info.Highlight(strconv.Itoa(slide)).
+		c.TabInfo.Highlight(strconv.Itoa(slide)).
 			ScrollToHighlight()
 	}
 	for index, slide := range c.Slides {
@@ -92,15 +91,15 @@ func (c *CView) Index() {
 		}
 		title, primitive := slide(nextSlide)
 		c.Pages.AddPage(strconv.Itoa(index), primitive, true, index == 0)
-		fmt.Fprintf(info, `%d ["%d"][darkcyan]%s[white][""]  `, index+1, index, title)
+		fmt.Fprintf(c.TabInfo, `%d ["%d"][darkcyan]%s[white][""]  `, index+1, index, title)
 	}
-	info.Highlight("0")
+	c.TabInfo.Highlight("0")
 
 	// Create the main layout.
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(c.Pages, 0, 1, true).
-		AddItem(info, 1, 1, false)
+		AddItem(c.TabInfo, 1, 1, false)
 
 	// Shortcuts to navigate the slides.
 	c.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -121,6 +120,12 @@ func (c *CView) Index() {
 }
 func (c *CView) CheckLogin() {
 	if !c.IsLogin {
-		c.Pages.SwitchToPage("1")
+		c.JumpTo("1")
 	}
+}
+
+//跳转页面
+func (c *CView) JumpTo(pagename string) {
+	c.Pages.SwitchToPage(pagename)
+	c.TabInfo.Highlight(pagename).ScrollToHighlight()
 }
