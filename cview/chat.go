@@ -10,6 +10,7 @@ import (
 )
 
 func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
+
 	//消息窗
 	textView := tview.NewTextView().
 		SetTextColor(tcell.ColorYellow).
@@ -40,6 +41,23 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 		}
 	}()
 	textView.SetBorder(true).SetTitle("  消息")
+	//好友列表
+	list := tview.NewList()
+	list.ShowSecondaryText(false).
+		AddItem("Basic table", "", 'b', func() {
+			textView.SetText("Basic table")
+		}).
+		AddItem("Table with separator", "", 's', func() {
+			textView.SetText("Table with separator")
+		}).
+		AddItem("Table with borders", "", 'o', func() {
+			textView.SetText("Table with borders")
+		}).
+		AddItem("Selectable rows", "", 'r', func() {
+			textView.SetText("Selectable rows")
+		})
+	list.SetBorderPadding(1, 1, 2, 2)
+	list.SetBorder(true).SetTitle("  好友列表 ")
 	//输入窗口
 	inputform := tview.NewForm()
 	inputform.AddInputField("请输入消息:", "", 50, nil, nil).
@@ -53,7 +71,7 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 
 	//整体框架
 	flex := tview.NewFlex().
-		AddItem(tview.NewBox().SetBorder(true).SetTitle("  好友列表 "), 0, 1, false). //Left (1/2 x width of Top)
+		AddItem(list, 0, 1, false). //Left (1/2 x width of Top)
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(tview.NewBox().SetBorder(true).SetTitle("  信息栏 "), 0, 1, false). //Top
 			AddItem(textView, 0, 3, false).                                          //Middle (3 x height of Top)
