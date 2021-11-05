@@ -24,7 +24,6 @@ import (
 
 type CView struct {
 	IsLogin       bool
-	UserInfo      UserInfo
 	App           *tview.Application
 	Pages         *tview.Pages
 	CurrentSlide  string
@@ -32,8 +31,8 @@ type CView struct {
 	Slides        []Slide
 	TabInfo       *tview.TextView
 	Api           *http.Api
-}
-type UserInfo struct {
+	FriendsList   []interface{}
+	UserInfo      map[string]interface{}
 }
 
 //不需要检查登录的页面
@@ -56,6 +55,8 @@ func NewCView() *CView {
 		Slides:        make([]Slide, 10),
 		TabInfo:       tview.NewTextView(), //底部切换栏
 		Api:           http.NewApi(),
+		FriendsList:   make([]interface{}, 0),
+		UserInfo:      make(map[string]interface{}),
 	}
 
 	return f
@@ -150,7 +151,10 @@ func (c *CView) CheckLogin() bool {
 	if c.IsLogin {
 		result := c.Api.Info()
 		if result.Code == 200 {
-
+			Datas := result.Data.(map[string]interface{})
+			c.UserInfo = Datas["userinfo"].(map[string]interface{})
+			c.FriendsList = Datas["friends"].([]interface{})
+			c.Reload(2, c.Chat)
 		} else {
 			c.Api.Header["X-Token"] = ""
 			c.IsLogin = false
@@ -165,7 +169,7 @@ func (c *CView) JumpTo(pagename string) {
 	c.TabInfo.Highlight(pagename).ScrollToHighlight()
 }
 
-//检查登录与挑战页面
+//检查登录与跳转页面 passDone 检查通过后执行
 func (c *CView) CheckJump(passDone func(), slide string) {
 	if c.CheckLogin() {
 		passDone()
@@ -176,4 +180,13 @@ func (c *CView) CheckJump(passDone func(), slide string) {
 			passDone()
 		}
 	}
+}
+
+//重载页面 index 页面编号， slide 定义的视图方法
+func (c *CView) Reload(index int, slide Slide) {
+	_, primitive := slide(func() {
+		c.JumpTo(strconv.Itoa(index + 1))
+	})
+	c.Pages.RemovePage(strconv.Itoa(index))
+	c.Pages.AddPage(strconv.Itoa(index), primitive, true, index == 0)
 }
