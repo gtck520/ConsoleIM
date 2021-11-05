@@ -17,18 +17,27 @@ import (
 	"strconv"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/gtck520/ConsoleIM/common/http"
+	"github.com/gtck520/ConsoleIM/common/util/ext"
 	"github.com/rivo/tview"
 )
 
 type CView struct {
 	IsLogin       bool
+	UserInfo      UserInfo
 	App           *tview.Application
 	Pages         *tview.Pages
 	CurrentSlide  string
 	PreviousSlide string
 	Slides        []Slide
 	TabInfo       *tview.TextView
+	Api           *http.Api
 }
+type UserInfo struct {
+}
+
+//不需要检查登录的页面
+var Exclude_Check []string
 
 // Slide is a function which returns the slide's main primitive and its title.
 // It receives a "nextSlide" function which can be called to advance the
@@ -36,6 +45,8 @@ type CView struct {
 type Slide func(nextSlide func()) (title string, content tview.Primitive)
 
 func NewCView() *CView {
+	//不需要检查登录的页面
+	Exclude_Check = []string{"0", "1"}
 	f := &CView{
 		IsLogin:       false,
 		App:           tview.NewApplication(),
@@ -44,6 +55,7 @@ func NewCView() *CView {
 		PreviousSlide: "0",
 		Slides:        make([]Slide, 10),
 		TabInfo:       tview.NewTextView(), //底部切换栏
+		Api:           http.NewApi(),
 	}
 
 	return f
@@ -68,21 +80,37 @@ func (c *CView) Index() {
 		SetRegions(true).
 		SetWrap(false).
 		SetHighlightedFunc(func(added, removed, remaining []string) {
-			c.Pages.SwitchToPage(added[0])
+			c.PreviousSlide = c.CurrentSlide
+			c.CurrentSlide = added[0]
+			c.CheckJump(func() {
+				c.Pages.SwitchToPage(added[0])
+			}, added[0])
+
 		})
 
 	// Create the pages for all slides.
 	previousSlide := func() {
 		slide, _ := strconv.Atoi(c.TabInfo.GetHighlights()[0])
 		slide = (slide - 1 + len(c.Slides)) % len(c.Slides)
-		c.TabInfo.Highlight(strconv.Itoa(slide)).
-			ScrollToHighlight()
+		c.PreviousSlide = c.CurrentSlide
+		c.CurrentSlide = strconv.Itoa(slide)
+		c.CheckJump(func() {
+			c.TabInfo.Highlight(strconv.Itoa(slide)).
+				ScrollToHighlight()
+		}, strconv.Itoa(slide))
+
 	}
 	nextSlide := func() {
+
 		slide, _ := strconv.Atoi(c.TabInfo.GetHighlights()[0])
 		slide = (slide + 1) % len(c.Slides)
-		c.TabInfo.Highlight(strconv.Itoa(slide)).
-			ScrollToHighlight()
+		c.PreviousSlide = c.CurrentSlide
+		c.CurrentSlide = strconv.Itoa(slide)
+		c.CheckJump(func() {
+			c.TabInfo.Highlight(strconv.Itoa(slide)).
+				ScrollToHighlight()
+		}, strconv.Itoa(slide))
+
 	}
 	for index, slide := range c.Slides {
 		if slide == nil {
@@ -118,14 +146,34 @@ func (c *CView) Index() {
 		panic(err)
 	}
 }
-func (c *CView) CheckLogin() {
-	if !c.IsLogin {
-		c.JumpTo("1")
+func (c *CView) CheckLogin() bool {
+	if c.IsLogin {
+		result := c.Api.Info()
+		if result.Code == 200 {
+
+		} else {
+			c.Api.Header["X-Token"] = ""
+			c.IsLogin = false
+		}
 	}
+	return c.IsLogin
 }
 
 //跳转页面
 func (c *CView) JumpTo(pagename string) {
 	c.Pages.SwitchToPage(pagename)
 	c.TabInfo.Highlight(pagename).ScrollToHighlight()
+}
+
+//检查登录与挑战页面
+func (c *CView) CheckJump(passDone func(), slide string) {
+	if c.CheckLogin() {
+		passDone()
+	} else {
+		if !ext.In(c.CurrentSlide, Exclude_Check) {
+			c.alert(c.Pages, "alert-dialog", "error", "请先登录", "1")
+		} else {
+			passDone()
+		}
+	}
 }

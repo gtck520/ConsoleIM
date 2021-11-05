@@ -25,9 +25,6 @@ const (
 
 // Cover returns the cover page.
 func (c *CView) Cover(nextSlide func()) (title string, content tview.Primitive) {
-	// What's the size of the logo?
-	c.PreviousSlide = c.CurrentSlide
-	c.CurrentSlide = "1"
 	lines := strings.Split(logo, "\n")
 	logoWidth := 0
 	logoHeight := len(lines)

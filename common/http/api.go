@@ -21,6 +21,7 @@ type Api struct {
 	Token  string
 	Header map[string]interface{}
 	Logger logger.Logger
+	Cli    *goz.Request
 }
 type Results struct {
 	Code    int         `json:"code"`
@@ -31,21 +32,23 @@ type Results struct {
 func NewApi() *Api {
 	zap := logger.Logger{}
 	zap.Init()
+	header := map[string]interface{}{
+		"Content-Type": "application/json",
+	}
 	f := &Api{
 		Token:  "",
-		Header: make(map[string]interface{}),
+		Header: header,
 		Logger: zap,
+		Cli:    goz.NewClient(),
 	}
 	return f
 }
 
 //登录
 func (a *Api) Login(username string, password string) Results {
-	cli := goz.NewClient()
-	resp, err := cli.Post(Api_Url+Login_Url, goz.Options{
-		Headers: map[string]interface{}{
-			"Content-Type": "application/json",
-		},
+
+	resp, err := a.Cli.Post(Api_Url+Login_Url, goz.Options{
+		Headers: a.Header,
 		JSON: struct {
 			Phone    string `json:"phone"`
 			Password string `json:"user_pass"`
@@ -70,14 +73,31 @@ func (a *Api) Login(username string, password string) Results {
 	return result
 }
 
+//用户信息
+func (a *Api) Info() Results {
+	resp, err := a.Cli.Post(Api_Url+UserInfo_Url, goz.Options{
+		Headers: a.Header,
+		JSON: struct {
+		}{},
+	})
+	if err != nil {
+		a.Logger.Log.Error(err)
+	}
+
+	body, _ := resp.GetBody()
+	a.Logger.Log.Info(body) //调试
+	// Output: json:{"key1":"value1","key2":["value21","value22"],"key3":333}
+	result := Results{}
+	if err := json.Unmarshal([]byte(body), &result); err != nil {
+		a.Logger.Log.Error(err)
+	}
+	return result
+}
+
 //获取好友列表
 func (a *Api) GetFriends() {
-	cli := goz.NewClient()
-
-	resp, err := cli.Post(Api_Url+FriendList_Url, goz.Options{
-		Headers: map[string]interface{}{
-			"Content-Type": "application/json",
-		},
+	resp, err := a.Cli.Post(Api_Url+FriendList_Url, goz.Options{
+		Headers: a.Header,
 		JSON: struct {
 			Key1 string   `json:"key1"`
 			Key2 []string `json:"key2"`

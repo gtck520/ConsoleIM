@@ -10,8 +10,7 @@ import (
 )
 
 func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
-	c.PreviousSlide = c.CurrentSlide
-	c.CurrentSlide = "2"
+	
 	//消息窗
 	textView := tview.NewTextView().
 		SetTextColor(tcell.ColorYellow).
