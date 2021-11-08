@@ -6,6 +6,7 @@ require (
 	github.com/coocood/freecache v1.1.1
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
 	github.com/go-ini/ini v1.63.2
+	github.com/gorilla/websocket v1.4.2
 	github.com/idoubi/goz v1.2.0
 	github.com/rivo/tview v0.0.0-20211029142923-a4acb08f513e
 	github.com/satori/go.uuid v1.2.0

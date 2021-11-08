@@ -35,6 +35,7 @@ func (c *CView) ApiLogin(form *tview.Form) {
 		data := result.Data.(map[string]interface{})
 		c.Api.Header["X-Token"] = data["token"].(string)
 		c.IsLogin = true
+		c.Ws.Connect(data["token"].(string))
 		c.alert(c.Pages, "alert-dialog", "success", "登录成功！", "2")
 	} else {
 		c.alert(c.Pages, "alert-dialog", "error", result.Message, "")

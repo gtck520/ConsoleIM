@@ -11,7 +11,7 @@ import (
 
 const (
 	Api_Url        = "http://127.0.0.1:8000/v1/api"
-	Websocket_Url  = "http://127.0.0.1:8000/ws/chat"
+	Websocket_Url  = "ws://127.0.0.1:8000/ws/chat"
 	FriendList_Url = "/friend/friend_list"
 	Login_Url      = "/user/login"
 	UserInfo_Url   = "/user/info"

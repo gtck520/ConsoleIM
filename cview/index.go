@@ -13,12 +13,14 @@ the following shortcuts can be used:
 package cview
 
 import (
+	"container/list"
 	"fmt"
 	"strconv"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gtck520/ConsoleIM/common/http"
 	"github.com/gtck520/ConsoleIM/common/util/ext"
+	"github.com/gtck520/ConsoleIM/websocket"
 	"github.com/rivo/tview"
 )
 
@@ -33,6 +35,9 @@ type CView struct {
 	Api           *http.Api
 	FriendsList   []interface{}
 	UserInfo      map[string]interface{}
+	ChatToUserId  int                //当前聊天用户
+	MessageList   map[int]*list.List //用户消息列表
+	Ws            websocket.Ws
 }
 
 //不需要检查登录的页面
@@ -57,6 +62,8 @@ func NewCView() *CView {
 		Api:           http.NewApi(),
 		FriendsList:   make([]interface{}, 0),
 		UserInfo:      make(map[string]interface{}),
+		MessageList:   make(map[int]*list.List),
+		Ws:            websocket.Ws{},
 	}
 
 	return f

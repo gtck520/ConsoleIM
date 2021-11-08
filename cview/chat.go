@@ -151,3 +151,8 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 		//AddItem(tview.NewBox().SetBorder(true).SetTitle("待定"), 20, 1, false)  //Right (20 cols)
 	return "Chat", flex
 }
+
+//打开好友聊天
+func (c *CView) ChatToUser(userid int){
+
+}
