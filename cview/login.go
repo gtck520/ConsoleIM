@@ -12,7 +12,7 @@ func (c *CView) Login(nextSlide func()) (title string, content tview.Primitive) 
 		//AddInputField("Last name:", "", 20, nil, nil).
 		//AddDropDown("Role:", []string{"Engineer", "Manager", "Administration"}, 0, nil).
 		//AddCheckbox("On vacation:", false, nil).
-		AddPasswordField("密码:", "18695732895", 10, '*', nil).
+		AddPasswordField("密码:", "123456", 10, '*', nil).
 		AddButton("登录", func() {
 			c.ApiLogin(f)
 		}).

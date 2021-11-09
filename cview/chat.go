@@ -4,7 +4,6 @@ package cview
 import (
 	"container/list"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -12,8 +11,8 @@ import (
 )
 
 //打开好友聊天
-func (c *CView) ChatToUser(userid int) {
-	c.TextView.SetTitle(" " + strconv.Itoa(userid) + "消息")
+func (c *CView) ChatToUser(userid int, title string) {
+	c.TextView.SetTitle(" " + title + "消息")
 	c.ChatToUserId = userid //重置当前聊天id
 	//将消息列表打印到屏幕
 	c.TextView.SetText("") //先清空
@@ -73,10 +72,10 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 			c.MessageList[int(friend["friend_id"].(float64))] = list
 
 			subcode := &node{
-				text: strconv.Itoa(int(friend["friend_id"].(float64))),
+				text: friend["user_name"].(string),
 				//expand: true,
 				selected: func() {
-					c.ChatToUser(int(friend["friend_id"].(float64)))
+					c.ChatToUser(int(friend["friend_id"].(float64)), friend["user_name"].(string))
 				},
 			}
 			newcode.children = append(newcode.children, subcode)
@@ -162,10 +161,10 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 //发送到屏幕 并保存到本地
 func (c *CView) ScreenAndSave(userid int, name string, time string, message string) {
 	//消息接收时，接收对象为当前聊天对象才打印到屏幕
+	sendmessage := name + ":" + message + "  at " + time
 	if c.ChatToUserId == userid {
-		sendmessage := name + ":" + message + "  at " + time
 		fmt.Fprintln(c.TextView, sendmessage)
 	}
 	//往消息列表后插入一条
-	c.MessageList[userid].PushBack(message)
+	c.MessageList[userid].PushBack(sendmessage)
 }
