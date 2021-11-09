@@ -2,6 +2,7 @@
 package cview
 
 import (
+	"container/list"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,38 +11,33 @@ import (
 	"github.com/rivo/tview"
 )
 
+//打开好友聊天
+func (c *CView) ChatToUser(userid int) {
+	c.TextView.SetTitle(" " + strconv.Itoa(userid) + "消息")
+	c.ChatToUserId = userid //重置当前聊天id
+	//将消息列表打印到屏幕
+	c.TextView.SetText("") //先清空
+	for e := c.MessageList[userid].Front(); e != nil; e = e.Next() {
+		fmt.Fprintln(c.TextView, e.Value)
+	}
+
+}
+
 func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 
 	//消息窗
-	textView := tview.NewTextView().
+	c.TextView.
 		SetTextColor(tcell.ColorYellow).
 		SetScrollable(false).
 		SetDoneFunc(func(key tcell.Key) {
 			nextSlide()
 		})
-	textView.SetChangedFunc(func() {
-		if textView.HasFocus() {
-			c.App.Draw()
-		}
+	c.TextView.SetChangedFunc(func() {
+		// if c.TextView.HasFocus() {
+		c.App.Draw()
+		// }
 	})
-	go func() {
-		var n int
-		for {
-			if textView.HasFocus() {
-				n++
-				if n > 512 {
-					n = 1
-					textView.SetText("")
-				}
-
-				fmt.Fprintf(textView, "%d ", n)
-				time.Sleep(200 * time.Millisecond)
-			} else {
-				time.Sleep(time.Second)
-			}
-		}
-	}()
-	textView.SetBorder(true).SetTitle("  消息")
+	c.TextView.SetBorder(true).SetTitle("  消息")
 	//好友列表
 	type node struct {
 		text     string
@@ -72,12 +68,18 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 		newcode.expand = true
 		for _, friendI := range group["group_members"].([]interface{}) {
 			friend := friendI.(map[string]interface{})
-			var subcode node
-			subcode.text = strconv.Itoa(int(friend["friend_id"].(float64)))
-			subcode.expand = true
-			subcode.selected = func() {
+			//初始化聊天记录
+			list := list.New()
+			c.MessageList[int(friend["friend_id"].(float64))] = list
+
+			subcode := &node{
+				text: strconv.Itoa(int(friend["friend_id"].(float64))),
+				//expand: true,
+				selected: func() {
+					c.ChatToUser(int(friend["friend_id"].(float64)))
+				},
 			}
-			newcode.children = append(newcode.children, &subcode)
+			newcode.children = append(newcode.children, subcode)
 		}
 		rootNode.children = append(rootNode.children, &newcode)
 
@@ -135,8 +137,13 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 	inputform.AddInputField("请输入消息:", "", 50, nil, nil).
 		AddButton("发送", func() {
 			message := inputform.GetFormItem(0).(*tview.InputField).GetText()
-			fmt.Fprintln(textView, message)
-			inputform.GetFormItem(0).(*tview.InputField).SetText("")
+			result := c.Api.SendMessage(int(c.UserInfo["id"].(float64)), c.ChatToUserId, "user", message)
+			timestr := time.Now().Format("2006-01-02 15:04:05")
+			if result.Code == 200 {
+				c.ScreenAndSave(c.ChatToUserId, "我", timestr, message)
+				inputform.GetFormItem(0).(*tview.InputField).SetText("")
+			}
+
 		}).
 		SetHorizontal(true)
 	inputform.SetBorder(true).SetTitle("")
@@ -146,13 +153,19 @@ func (c *CView) Chat(nextSlide func()) (title string, content tview.Primitive) {
 		AddItem(tree, 0, 1, false). //Left (1/2 x width of Top)
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(tview.NewBox().SetBorder(true).SetTitle("  信息栏 "), 0, 1, false). //Top
-			AddItem(textView, 0, 3, false).                                          //Middle (3 x height of Top)
+			AddItem(c.TextView, 0, 3, false).                                        //Middle (3 x height of Top)
 			AddItem(inputform, 5, 1, false), 0, 2, false)                            //Bottom (5 rows)
 		//AddItem(tview.NewBox().SetBorder(true).SetTitle("待定"), 20, 1, false)  //Right (20 cols)
 	return "Chat", flex
 }
 
-//打开好友聊天
-func (c *CView) ChatToUser(userid int){
-
+//发送到屏幕 并保存到本地
+func (c *CView) ScreenAndSave(userid int, name string, time string, message string) {
+	//消息接收时，接收对象为当前聊天对象才打印到屏幕
+	if c.ChatToUserId == userid {
+		sendmessage := name + ":" + message + "  at " + time
+		fmt.Fprintln(c.TextView, sendmessage)
+	}
+	//往消息列表后插入一条
+	c.MessageList[userid].PushBack(message)
 }

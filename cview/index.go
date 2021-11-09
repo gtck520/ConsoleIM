@@ -14,7 +14,9 @@ package cview
 
 import (
 	"container/list"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"github.com/gdamore/tcell/v2"
@@ -38,6 +40,7 @@ type CView struct {
 	ChatToUserId  int                //当前聊天用户
 	MessageList   map[int]*list.List //用户消息列表
 	Ws            websocket.Ws
+	TextView      *tview.TextView
 }
 
 //不需要检查登录的页面
@@ -48,6 +51,27 @@ var Exclude_Check []string
 // presentation to the next slide.
 type Slide func(nextSlide func()) (title string, content tview.Primitive)
 
+//发送内容content 载体
+type TypeMessage struct {
+	Type interface{} `json:"type"` //内容分发类型：ping、init、message 等等
+	Data interface{} `json:"data"`
+}
+
+//TypeMessage Data
+type ClientMessage struct {
+	Name     string `json:"name"`
+	Avator   string `json:"avator"`
+	Id       string `json:"id"`
+	Group    string `json:"group"`
+	Time     string `json:"time"`
+	ToId     string `json:"to_id"`
+	Content  string `json:"content"`
+	City     string `json:"city"`
+	ClientIp string `json:"client_ip"`
+	Refer    string `json:"refer"`
+}
+
+//初始化一个显示客户端
 func NewCView() *CView {
 	//不需要检查登录的页面
 	Exclude_Check = []string{"0", "1"}
@@ -64,6 +88,7 @@ func NewCView() *CView {
 		UserInfo:      make(map[string]interface{}),
 		MessageList:   make(map[int]*list.List),
 		Ws:            websocket.Ws{},
+		TextView:      tview.NewTextView(),
 	}
 
 	return f
@@ -196,4 +221,32 @@ func (c *CView) Reload(index int, slide Slide) {
 	})
 	c.Pages.RemovePage(strconv.Itoa(index))
 	c.Pages.AddPage(strconv.Itoa(index), primitive, true, index == 0)
+}
+
+//从socket读取消息到视图
+func (c *CView) ReadMessage() {
+
+	go func() {
+		for {
+			_, message, err := c.Ws.Conn.ReadMessage()
+			if err != nil {
+				c.Ws.Log.Error("read:", err)
+				return
+			}
+			typemessage := TypeMessage{}
+			json.Unmarshal(message, &typemessage)
+			c.Ws.Log.Infof("typemessage: %s", typemessage)
+			reflectType := reflect.TypeOf(typemessage.Data)
+			c.Ws.Log.Infof("reflecttype: %s", reflectType.Name())
+			if reflectType.Name() == "" {
+				clientmessage := typemessage.Data.(map[string]interface{})
+				c.Ws.Log.Infof("clientmessage: %s", clientmessage)
+				if clientmessage["to_id"] != nil {
+					fromuserid, _ := strconv.Atoi(clientmessage["id"].(string))
+					c.ScreenAndSave(fromuserid, clientmessage["name"].(string), clientmessage["time"].(string), clientmessage["content"].(string))
+				}
+			}
+
+		}
+	}()
 }

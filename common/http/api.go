@@ -15,6 +15,7 @@ const (
 	FriendList_Url = "/friend/friend_list"
 	Login_Url      = "/user/login"
 	UserInfo_Url   = "/user/info"
+	Send_Url       = "/ws/send"
 )
 
 type Api struct {
@@ -111,5 +112,30 @@ func (a *Api) GetFriends() {
 	body, _ := resp.GetBody()
 	fmt.Println(body)
 	// Output: json:{"key1":"value1","key2":["value21","value22"],"key3":333}
+
+}
+
+//发送消息
+func (a *Api) SendMessage(fromid int, toid int, typestr string, msg string) Results {
+	resp, err := a.Cli.Post(Api_Url+Send_Url, goz.Options{
+		Headers: a.Header,
+		JSON: struct {
+			FromId int    `json:"fromid"` // 发送方
+			ToId   int    `json:"toid"`   // 接收方
+			Type   string `json:"type"`   // 发送类型  group:群发  user:私聊
+			Msg    string `json:"msg"`    // 内容
+		}{fromid, toid, typestr, msg},
+	})
+	if err != nil {
+		a.Logger.Log.Error(err)
+	}
+
+	body, _ := resp.GetBody()
+	a.Logger.Log.Info(body) //调试
+	result := Results{}
+	if err := json.Unmarshal([]byte(body), &result); err != nil {
+		a.Logger.Log.Error(err)
+	}
+	return result
 
 }
